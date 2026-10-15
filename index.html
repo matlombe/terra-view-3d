@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071321">
+<meta name="description" content="Terra 3D Live: globo 3D, meteorologia e eventos ambientais para Moçambique.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>Terra 3D Live</title>
+<style>
+:root{color-scheme:dark;--bg:#071321;--panel:rgba(10,25,43,.91);--line:#25435e;--gold:#f3c969;--text:#edf6ff;--muted:#9bb1c7;--green:#72e0b2;--blue:#66bdf5}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#globe{position:absolute;inset:0}canvas{display:block}
+header{position:absolute;z-index:3;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none}
+.brand,.clock,.panel,.bottom,.pill{background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 8px 32px #0004}
+.brand,.clock{pointer-events:auto;border-radius:15px;padding:11px 13px}.brand h1{font-size:clamp(15px,2.8vw,21px);letter-spacing:.08em;margin:0}.brand p{font-size:10px;color:var(--muted);margin:4px 0 0}.gold{color:var(--gold)}
+.clock{text-align:right;min-width:118px}.clock strong{display:block;font-size:18px;font-variant-numeric:tabular-nums}.clock small{font-size:9px;color:var(--muted);letter-spacing:.1em}
+.panel{position:absolute;z-index:3;left:13px;top:100px;width:min(290px,calc(100vw - 26px));max-height:calc(100dvh - 180px);overflow:auto;border-radius:17px;padding:13px}
+h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0 0 10px}
+.tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}.tab,button{border:1px solid #345773;background:#122b45;color:var(--text);border-radius:10px;padding:8px 10px;font:inherit;font-size:12px;cursor:pointer}.tab.active{border-color:var(--gold);color:var(--gold);background:#3a321f}
+.control{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;font-size:12px;color:#dbe8f6}.control input{accent-color:var(--gold)}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}button:hover{background:#1b3d5e}
+.metric{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #294158;padding:8px 0;font-size:12px}.metric strong{font-variant-numeric:tabular-nums}.muted{color:var(--muted)}.small{font-size:10px;line-height:1.5;color:var(--muted)}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:10px;border-radius:999px;padding:5px 8px;background:#153a35;color:#a8f4d5;border:1px solid #28665b;margin-bottom:9px}.dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.bottom{position:absolute;z-index:3;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:8px 12px;border-radius:999px;font-size:10px;color:var(--muted);white-space:nowrap;max-width:calc(100vw - 20px)}
+.loader{position:absolute;z-index:10;inset:0;background:#040b14;display:grid;place-items:center;transition:opacity .4s}.loader.hide{opacity:0;pointer-events:none}.loader div{text-align:center;color:var(--muted);font-size:13px}.spin{width:36px;height:36px;border:3px solid #23405c;border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+.notice{border:1px solid #715d2c;background:#302b1d;border-radius:10px;padding:8px;margin-top:8px;font-size:10px;line-height:1.5;color:#f6df9d}
+#events{max-height:175px;overflow:auto}.event{padding:7px 0;border-top:1px solid #294158;font-size:11px}.event b{display:block;margin-bottom:3px}
+@media(max-width:600px){.panel{top:auto;bottom:64px;width:min(270px,calc(100vw - 24px));max-height:45dvh}.brand p{max-width:145px}.clock{min-width:102px}.bottom{font-size:9px}}
+</style>
+</head>
+<body>
+<div id="globe"></div>
+<div class="loader" id="loader"><div><div class="spin"></div>A iniciar Terra 3D Live…<br><small>Na primeira abertura, ligue-se à internet.</small></div></div>
+<header>
+ <div class="brand"><h1>🌍 TERRA 3D <span class="gold">LIVE</span></h1><p>Monitorização de Moçambique</p></div>
+ <div class="clock"><strong id="utc">--:--:--</strong><small>UTC · ACTUALIZAÇÃO LOCAL</small></div>
+</header>
+<aside class="panel">
+ <div class="tabs">
+  <button class="tab active" data-tab="globo">Globo</button>
+  <button class="tab" data-tab="tempo">Meteorologia</button>
+  <button class="tab" data-tab="eventos">Eventos</button>
+  <button class="tab" data-tab="dados">Dados</button>
+ </div>
+ <section id="view-globo">
+  <h2>Controlos do planeta</h2>
+  <label class="control">Rotação automática <input id="rotate" type="checkbox" checked></label>
+  <label class="control">Atmosfera <input id="atmosphere" type="checkbox" checked></label>
+  <label class="control">Marcador de Maputo <input id="maputo" type="checkbox" checked></label>
+  <div class="actions"><button id="focusMoz">Focar Moçambique</button><button id="home">Vista global</button></div>
+  <p class="small">Arraste o globo para rodar. Use a roda do rato ou pinça para aproximar. Toque num marcador para ver a localização.</p>
+ </section>
+ <section id="view-tempo" hidden>
+  <h2>Tempo actual · Maputo</h2>
+  <div class="status"><span class="dot"></span><span id="weatherState">A consultar serviço meteorológico…</span></div>
+  <div class="metric"><span>Temperatura</span><strong id="temp">—</strong></div>
+  <div class="metric"><span>Sensação térmica</span><strong id="feels">—</strong></div>
+  <div class="metric"><span>Humidade</span><strong id="humidity">—</strong></div>
+  <div class="metric"><span>Vento</span><strong id="wind">—</strong></div>
+  <div class="metric"><span>Precipitação</span><strong id="rain">—</strong></div>
+  <div class="metric"><span>Actualizado em</span><strong id="weatherTime">—</strong></div>
+  <p class="small">Dados actuais fornecidos pela API Open-Meteo para as coordenadas de Maputo. O intervalo de actualização depende do fornecedor.</p>
+  <button id="refreshWeather">Actualizar agora</button>
+ </section>
+ <section id="view-eventos" hidden>
+  <h2>Eventos ambientais</h2>
+  <div class="status"><span class="dot"></span><span id="eventState">A consultar feed global…</span></div>
+  <div id="events"><p class="small">A carregar eventos activos.</p></div>
+  <p class="small">Feed de eventos naturais EONET da NASA. Não substitui alertas oficiais de emergência em Moçambique.</p>
+  <button id="refreshEvents">Actualizar eventos</button>
+ </section>
+ <section id="view-dados" hidden>
+  <h2>Estado e limites dos dados</h2>
+  <div class="metric"><span>Globo 3D / textura</span><strong>Visual estático</strong></div>
+  <div class="metric"><span>Meteorologia</span><strong id="wxFresh">API online</strong></div>
+  <div class="metric"><span>Eventos ambientais</span><strong id="evFresh">API online</strong></div>
+  <div class="metric"><span>Imagens satélite ao vivo</span><strong>Não incluídas</strong></div>
+  <div class="metric"><span>Rastreio orbital ao vivo</span><strong>Não incluído</strong></div>
+  <div class="notice"><b>Importante:</b> a textura do globo não é vídeo de satélite em directo. Meteorologia e eventos são dados online actualizados pelo fornecedor; sem internet, os dados deixam de actualizar-se.</div>
+  <p class="small">A versão guarda a estrutura básica para reabrir a aplicação, mas os dados online, bibliotecas e texturas podem não funcionar offline. A geolocalização exige HTTPS e autorização.</p>
+ </section>
+</aside>
+<div class="bottom" id="globalStatus">A preparar visualização 3D…</div>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://unpkg.com/globe.gl@2.38.0/dist/globe.gl.min.js"></script>
+<script src="./app.js"></script>
+</body></html>

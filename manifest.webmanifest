@@ -1,0 +1,19 @@
+{
+  "name": "Terra 3D Live",
+  "short_name": "Terra 3D",
+  "description": "Globo 3D e monitorização meteorológica e ambiental de Moçambique.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#071321",
+  "theme_color": "#071321",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
